@@ -13,6 +13,8 @@ AddRequest: url:string, fileName?:string|null, destination?:string|null.
 
 ## Tauri commands
 
+Stage 1 implements `get_snapshot`, `add_downloads`, `open_download`, and `quit_app`. The remaining commands below are reserved for later milestones. The React UI polls snapshots every 500 ms after the previous request finishes and refreshes after adding downloads; the events below are also reserved. Native folder selection uses the dialog plugin. All DTOs retain this contract's camelCase names.
+
 - get_snapshot() -> Snapshot
 - add_downloads({requests:AddRequest[]}) -> Download[]
 - action_download({id:string, action:pause|resume|cancel|retry|remove}) -> void
@@ -25,9 +27,12 @@ AddRequest: url:string, fileName?:string|null, destination?:string|null.
 Events: download-snapshot -> Snapshot; browser-links -> notification to drain take_browser_links.
 Folder selection: @tauri-apps/plugin-dialog open({directory:true,multiple:false}).
 
+`open_download` resolves a completed download by ID in Rust and opens/reveals its saved file; it does not accept arbitrary frontend paths. Missing files and shell failures return readable command errors. `quit_app` and native window close use the same confirmation and awaited shutdown flow. A pending close request prevents duplicate confirmations. The app uses a single instance, an application-local database, and the system Downloads directory by default.
+
 ## Rust core API (crates/download-core)
 
 Package flow-core; exports Manager, Download, Settings, Snapshot, AddRequest, Action, Direction, Status.
+Currently implemented manager operations are `new`, `start`, `snapshot`, `add`, and `shutdown`; action/reorder/settings-update methods below remain reserved.
 Manager::new(db_path:PathBuf, default_download_dir:PathBuf) -> Result<Arc<Manager>>.
 manager.start() (self: &Arc<Self>, requires Tokio runtime); snapshot() -> Result<Snapshot>; add(requests:Vec<AddRequest>) -> Result<Vec<Download>>; action(id:&str, action:Action) -> Result<()>; reorder(id:&str,direction:Direction) -> Result<()>; update_settings(settings:Settings) -> Result<Settings>; shutdown().await -> Result<()>.
 Manager owns scheduling, persistence, state, transfer cancellation and graceful shutdown. No Tauri dependency. Implement blocking DB locking briefly; never hold locks across awaits.

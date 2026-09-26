@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "The main window may select a download folder. File opening stays behind validated Rust commands.",
+  "windows": ["main"],
+  "permissions": ["dialog:allow-open"]
+}
